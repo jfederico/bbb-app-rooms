@@ -14,7 +14,7 @@
 # with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 
 require 'bbb/credentials'
-require 'bigbluebutton_api'
+require 'bbb/big_blue_button_decorator'
 require 'rooms_error/error'
 
 module BbbHelper
@@ -31,7 +31,7 @@ module BbbHelper
     @bbb_credentials ||= initialize_bbb_credentials
     bbb_url = remove_slash(@bbb_credentials.endpoint(@chosen_room.tenant))
     bbb_secret = @bbb_credentials.secret(@chosen_room.tenant)
-    BigBlueButton::BigBlueButtonApi.new(bbb_url, bbb_secret, '1.0', Rails.logger)
+    Bbb::BigBlueButtonDecorator.new(bbb_url, bbb_secret, '1.0', Rails.logger)
   rescue StandardError => e
     logger.error("Error in creating BBB object: #{e}")
     raise RoomsError::CustomError.new(code: 500, message: 'There was an error initializing BigBlueButton credentials', key: 'BigBlueButton Error')
