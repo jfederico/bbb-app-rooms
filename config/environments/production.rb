@@ -101,16 +101,24 @@ Rails.application.configure do
 
   # Disable output buffering when STDOUT isn't a tty (e.g. Docker images, systemd services)
   $stdout.sync = true
-  logger = ActiveSupport::Logger.new($stdout)
+
+  stdout_logger = ActiveSupport::Logger.new($stdout)
+  stdout_logger.formatter = config.log_formatter
 
   if ENV['RAILS_LOG_REMOTE_NAME'] && ENV['RAILS_LOG_REMOTE_PORT']
     require 'remote_syslog_logger'
     logger_program = ENV['RAILS_LOG_REMOTE_TAG'] || "bbb-lti-broker-#{ENV['RAILS_ENV']}"
-    logger = RemoteSyslogLogger.new(ENV['RAILS_LOG_REMOTE_NAME'],
-                                    ENV['RAILS_LOG_REMOTE_PORT'], program: logger_program)
+    remote_logger = RemoteSyslogLogger.new(ENV['RAILS_LOG_REMOTE_NAME'],
+                                           ENV['RAILS_LOG_REMOTE_PORT'],
+                                           program: logger_program)
+    remote_logger.formatter = config.log_formatter
+
+    multi_logger = MultiLogger.new(stdout_logger, remote_logger)
+  else
+    multi_logger = stdout_logger
   end
-  logger.formatter = config.log_formatter
-  config.logger = ActiveSupport::TaggedLogging.new(logger)
+
+  config.logger = ActiveSupport::TaggedLogging.new(multi_logger)
 
   # configure redis for ActionCable
   config.cache_store = if ENV['REDIS_URL'].present?
